@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AssistedReminderApp</string>
+    <string name="search">Search</string>
+    <string name="account">Account</string>
+</resources>
