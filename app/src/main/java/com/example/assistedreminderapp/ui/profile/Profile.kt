@@ -30,7 +30,7 @@ fun Profile(
 )
 {
     val viewModel: ProfileViewModel = viewModel(
-        key = "profile_list_$userId",
+        key = "profile_$userId",
         factory = viewModelProviderFactoryOf { ProfileViewModel(userId = userId) }
     )
     val viewState by viewModel.state.collectAsState()
@@ -70,7 +70,7 @@ fun Profile(
                 )
                 {
                     Text(
-                        text = "Profile view",
+                        text = "Profile",
                         fontSize = 26.sp
                     )
                     Spacer(

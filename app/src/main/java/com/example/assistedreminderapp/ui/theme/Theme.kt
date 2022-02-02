@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 
 private val DarkColorPalette = darkColors(
     primary = DarkBlue,
-    primaryVariant = CustomPurple,
+    primaryVariant = DarkGrey,
     secondary = CustomPurple,
 )
 
@@ -32,13 +32,6 @@ fun AssistedReminderAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable() () -> Unit
 ) {
-    /*
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
-    }
-    */
     val colors = DarkColorPalette
 
     MaterialTheme(

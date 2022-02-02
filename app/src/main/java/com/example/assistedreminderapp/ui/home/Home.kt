@@ -66,17 +66,12 @@ fun Home(
             {
                 HomeNavBar(
                     backgroundColor = MaterialTheme.colors.secondary.copy(alpha = 0.85f),
-                    userId = userId,
-                    showProfileScreen = showProfileScreen,
                 )
 
-                if(userId != null)
-                {
-                    Reminders(
-                        modifier = Modifier.fillMaxSize(),
-                        userId = userId
-                    )
-                }
+                Reminders(
+                    modifier = Modifier.fillMaxSize(),
+                    userId = userId
+                )
             }
         }
     }
@@ -85,8 +80,6 @@ fun Home(
 @Composable
 fun HomeNavBar(
     backgroundColor: Color,
-    userId: Long,
-    showProfileScreen: (userId: Long) -> Unit,
 )
 {
     TopAppBar(
@@ -100,13 +93,6 @@ fun HomeNavBar(
             )
         },
         backgroundColor = backgroundColor,
-        actions = {
-            IconButton( onClick = {}){
-                Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(R.string.search))
-            }
-            IconButton( onClick = { showProfileScreen(userId)}){
-                Icon(imageVector = Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.account))
-            }
-        }
+        actions = {}
     )
 }

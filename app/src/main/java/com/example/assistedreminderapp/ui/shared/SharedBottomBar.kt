@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.assistedreminderapp.R
 
 @Composable
 fun SharedBottomBar(
@@ -18,15 +20,19 @@ fun SharedBottomBar(
     showHomeScreen: (userId: Long) -> Unit = {},
     userId: Long,
     startIndex: Int = 1,
-    backgroundColor: Color = MaterialTheme.colors.secondary,
+    backgroundColor: Color = MaterialTheme.colors.primaryVariant,
 )
 {
     val selectedIndex = remember { mutableStateOf(startIndex) }
-    BottomNavigation(elevation = 15.dp) {
+    BottomNavigation(
+        elevation = 15.dp,
+        backgroundColor = backgroundColor
+    ) {
         BottomNavigationItem(icon = {
             Icon(
                 imageVector = Icons.Default.Logout,
-                contentDescription = "Logout"
+                contentDescription = "",
+                tint = MaterialTheme.colors.secondary
             )
         },
             label = { Text(text = "Logout") },
@@ -39,7 +45,8 @@ fun SharedBottomBar(
         BottomNavigationItem(icon = {
             Icon(
                 imageVector = Icons.Default.Home,
-                contentDescription = "Home"
+                contentDescription = "",
+                tint = MaterialTheme.colors.secondary
             )
         },
             label = { Text(text = "Home") },
@@ -52,13 +59,14 @@ fun SharedBottomBar(
         BottomNavigationItem(icon = {
             Icon(
                 imageVector = Icons.Filled.AccountCircle,
-                contentDescription = "Profile"
+                contentDescription = "",
+                tint = MaterialTheme.colors.secondary
             )
         },
             label = { Text(text = "Profile") },
-            selected = (selectedIndex.value == 3),
+            selected = (selectedIndex.value == 2),
             onClick = {
-                selectedIndex.value = 3
+                selectedIndex.value = 2
                 showProfileScreen(userId)
             }
         )
