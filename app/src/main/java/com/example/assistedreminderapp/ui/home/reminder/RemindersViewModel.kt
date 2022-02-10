@@ -19,47 +19,29 @@ class RemindersViewModel(
 ) : ViewModel()
 {
    private val _state = MutableStateFlow(RemindersViewState())
-
-   suspend fun saveReminder(reminder: Reminder): Long {
-      return reminderRepository.addReminder(reminder)
-   }
+   private val _showRemovePopup = MutableStateFlow<Boolean>(false)
 
    //Create mock list of reminders. Later on fetched from Database
    //Currently just list of Reminders, not RemindersFromUser
-   private val _reminders = mutableListOf(
-      Reminder(
-         reminder_user_id = 1,
-         reminderMessage = "Wash dishes",
-         reminderDate = System.currentTimeMillis()
-      ),
-      Reminder(
-         reminder_user_id = 1,
-         reminderMessage = "Take dog out for a walk",
-         reminderDate = System.currentTimeMillis()
-      ),
-      Reminder(
-         reminder_user_id = 1,
-         reminderMessage = "Call bank",
-         reminderDate = System.currentTimeMillis()
-      )
-   )
+   private val _reminders = MutableStateFlow<List<RemindersFromUser>>(emptyList())
 
    init {
       //Code to fetch from database
-//      viewModelScope.launch {
-//         reminderRepository.userReminders(userId).collect { list ->
-//            _state.value = RemindersViewState(
-//               user = userRepository.getUserById(userId),
-//               reminders = list
-//            )
-//         }
-//      }
-     //Mockup list
       viewModelScope.launch {
-         _state.value = RemindersViewState(
-            user = userRepository.getUserById(userId),
-            reminders = _reminders
-         )
+         reminderRepository.userReminders(userId).collect { list ->
+             _reminders.value = list
+            _state.value = RemindersViewState(
+               user = userRepository.getUserById(userId),
+               reminders = list
+            )
+         }
+      }
+   }
+
+   fun removeReminder(reminder: Reminder)
+   {
+      viewModelScope.launch {
+          reminderRepository.deleteReminder(reminder)
       }
    }
 
@@ -70,5 +52,5 @@ class RemindersViewModel(
 
 data class RemindersViewState(
    val user: User? = null,
-   val reminders: List<Reminder> = emptyList()
+   val reminders: List<RemindersFromUser> = emptyList()
 )

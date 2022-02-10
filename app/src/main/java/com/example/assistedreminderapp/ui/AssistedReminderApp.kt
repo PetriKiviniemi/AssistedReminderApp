@@ -14,6 +14,7 @@ import com.example.assistedreminderapp.ui.Screen
 import com.example.assistedreminderapp.ui.home.Home
 import com.example.assistedreminderapp.ui.login.Login
 import com.example.assistedreminderapp.ui.profile.Profile
+import com.example.assistedreminderapp.ui.reminder.Reminder
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,13 +38,17 @@ fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedRem
 
         composable(route = Screen.Home.defaultRoute()) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")?.toLong()
+
             requireNotNull(userId) { "userId parameter wasn't found. userId parameter is required for home screen"}
             Home(
+                userId = userId,
                 showLoginScreen = { appState.navController.navigate(Screen.Login.defaultRoute()) {popUpTo(0)  {inclusive = true}}},
                 showProfileScreen= { userId ->
                     appState.navController.navigate(Screen.Profile.createRoute(userId))
                 },
-                userId = userId,
+                showReminderScreen = { userId, reminderId ->
+                    appState.navController.navigate(Screen.Reminder.createRoute(userId, reminderId))
+                },
             )
         }
 
@@ -54,6 +59,24 @@ fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedRem
                 showLoginScreen = { appState.navController.navigate(Screen.Login.defaultRoute()) {popUpTo(0)  {inclusive = true}}},
                 showHomeScreen = { appState.navController.navigate(Screen.Home.createRoute(userId)) {popUpTo(Screen.Profile.createRoute(userId)) {inclusive = true}}},
                 userId = userId,
+            )
+        }
+
+        composable(route = Screen.Reminder.defaultRoute()) { navBackStackEntry ->
+            val userId = navBackStackEntry.arguments?.getString("userId")?.toLong()
+            val reminderId = navBackStackEntry.arguments?.getString("reminderId")
+            val remIdLong = if(reminderId != "null") reminderId?.toLong() else null
+            requireNotNull(userId) { "userId parameter wasn't found. userId parameter is required for reminder screen"}
+            Reminder(
+                userId = userId,
+                reminderId = remIdLong,
+                showHomeScreen = {
+                    appState.navController.navigate(Screen.Home.createRoute(userId)) {
+                        popUpTo(Screen.Reminder.createRoute(userId, remIdLong)) {
+                            inclusive = true
+                        }
+                    }
+                },
             )
         }
     }

@@ -12,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.assistedreminderapp.data.entity.Reminder
 import com.example.assistedreminderapp.ui.home.reminder.Reminders
 import com.example.assistedreminderapp.ui.shared.SharedBottomBar
 import com.google.accompanist.insets.systemBarsPadding
@@ -21,14 +22,11 @@ fun Home(
     viewModel: HomeViewModel = viewModel(),
     showLoginScreen: () -> Unit,
     showProfileScreen: (userId: Long) -> Unit,
-    userId: Long?
+    showReminderScreen: (userId: Long, reminderId: Long?) -> Unit,
+    userId: Long
 )
 {
     val viewState by viewModel.state.collectAsState()
-
-    /* TODO:: HANDLE BETTER */
-    if(userId == null)
-        return
 
     Surface(
         modifier = Modifier.fillMaxSize()
@@ -38,7 +36,9 @@ fun Home(
             modifier = Modifier.fillMaxWidth(),
             floatingActionButton = {
                 FloatingActionButton(
-                    onClick = { /* TODO:: NAVIGATION */ },
+                    onClick = {
+                                showReminderScreen(userId, null)
+                              },
                     contentColor = Color.Blue,
                     modifier = Modifier.padding(all = 20.dp)
                 ){
@@ -69,9 +69,11 @@ fun Home(
                 )
 
                 Reminders(
+                    userId = userId,
                     modifier = Modifier.fillMaxSize(),
-                    userId = userId
+                    showReminderScreen = showReminderScreen
                 )
+                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }

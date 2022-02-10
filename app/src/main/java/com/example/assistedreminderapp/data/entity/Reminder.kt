@@ -7,13 +7,13 @@ import java.util.*
     tableName = "reminders",
     indices = [
         Index("id", unique=true),
-        Index("reminder_user_id")
+        Index("creator_id")
     ],
     foreignKeys = [
         ForeignKey(
             entity = User::class,
             parentColumns = ["id"],
-            childColumns = ["reminder_user_id"],
+            childColumns = ["creator_id"],
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
@@ -21,7 +21,11 @@ import java.util.*
 )
 data class Reminder(
     @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "id") val reminderId: Long = 0,
-    @ColumnInfo(name = "reminder_message") val reminderMessage: String,
-    @ColumnInfo(name = "reminder_date") val reminderDate: Long,
-    @ColumnInfo(name = "reminder_user_id") val reminder_user_id: Long,
+    @ColumnInfo(name = "message") val reminder_message: String,
+    @ColumnInfo(name = "location_x") val reminder_loc_x: Double,
+    @ColumnInfo(name = "location_y") val reminder_loc_y: Double,
+    @ColumnInfo(name = "reminder_time") val reminder_time: Long,
+    @ColumnInfo(name = "creation_time") val creation_time: Long,
+    @ColumnInfo(name = "creator_id") val creator_id: Long,
+    @ColumnInfo(name = "reminder_seen") val reminder_seen: Boolean,
 )

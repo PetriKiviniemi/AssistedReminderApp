@@ -21,7 +21,6 @@ class HomeViewModel(
 
    init {
       viewModelScope.launch {
-
       }
    }
 

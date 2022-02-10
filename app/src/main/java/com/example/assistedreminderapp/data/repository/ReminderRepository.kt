@@ -12,5 +12,11 @@ class ReminderRepository(
         return reminderDao.remindersFromUser(userId)
     }
 
+    suspend fun getReminder(reminderId: Long): Reminder? {
+        return reminderDao.reminder(reminderId)
+    }
+
     suspend fun addReminder(reminder: Reminder) = reminderDao.insert(reminder)
+
+    suspend fun deleteReminder(reminder: Reminder) = reminderDao.delete(reminder)
 }

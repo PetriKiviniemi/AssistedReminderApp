@@ -11,7 +11,7 @@ class RemindersFromUser(){
     @Embedded
     lateinit var reminder: Reminder
 
-    @Relation(parentColumn = "reminder_user_id", entityColumn = "id")
+    @Relation(parentColumn = "creator_id", entityColumn = "id")
     lateinit var _users: List<User>
 
     @get:Ignore

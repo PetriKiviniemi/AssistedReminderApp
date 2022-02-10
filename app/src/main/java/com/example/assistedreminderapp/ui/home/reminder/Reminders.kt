@@ -4,15 +4,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Divider
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -22,14 +23,14 @@ import com.example.assistedreminderapp.data.entity.Reminder
 import com.example.assistedreminderapp.data.room.RemindersFromUser
 import com.example.assistedreminderapp.util.viewModelProviderFactoryOf
 import com.google.accompanist.insets.systemBarsPadding
-import org.intellij.lang.annotations.JdkConstants
-import java.text.SimpleDateFormat
 import java.util.*
+import com.example.assistedreminderapp.util.toDateString
 
 @Composable
 fun Reminders(
     userId: Long?,
-    modifier: Modifier
+    modifier: Modifier,
+    showReminderScreen: (userId: Long, reminderId: Long?) -> Unit,
 )
 {
     //NOTE:: This will never be the case
@@ -64,14 +65,19 @@ fun Reminders(
         }
         Spacer(modifier = Modifier.height(10.dp))
         ReminderList(
-            list = viewState.reminders
+            list = viewState.reminders,
+            showReminderScreen = showReminderScreen,
+            viewModel = viewModel
         )
     }
 }
 
-//TODO:: Change to user RemindersFromUser and fetch from database
 @Composable
-fun ReminderList(list: List<Reminder>)
+fun ReminderList(
+    list: List<RemindersFromUser>,
+    showReminderScreen: (userId: Long, reminderId: Long?) -> Unit,
+    viewModel: RemindersViewModel,
+)
 {
     LazyColumn(
         contentPadding = PaddingValues(0.dp),
@@ -80,9 +86,12 @@ fun ReminderList(list: List<Reminder>)
     {
         items(list) { item ->
             ReminderListItem(
-                reminder = item,
-                onClick = {},
+                reminder = item.reminder,
+                onClick = {
+                    showReminderScreen(item.reminder.creator_id, item.reminder.reminderId)
+                          },
                 modifier = Modifier.fillParentMaxWidth(),
+                viewModel = viewModel
             )
         }
     }
@@ -93,13 +102,14 @@ fun ReminderListItem(
     reminder: Reminder,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: RemindersViewModel,
 )
 {
+    val isOpen = remember { mutableStateOf(false) }
     ConstraintLayout(
         modifier = modifier.clickable { onClick() },
     ) {
-
-        val (divider, reminderMsg, reminderDate) = createRefs()
+        val (divider, reminderMsg, reminderDate, removeBtn) = createRefs()
         Divider(
             Modifier.constrainAs(divider) {
                 top.linkTo(parent.top)
@@ -110,45 +120,112 @@ fun ReminderListItem(
 
         // Message
         Text(
-            text = reminder.reminderMessage,
+            text = reminder.reminder_message,
             maxLines = 1,
             style = MaterialTheme.typography.subtitle1,
             fontSize = 18.sp,
             modifier = Modifier.constrainAs(reminderMsg) {
                 linkTo(
                     start = parent.start,
-                    end = reminderDate.start,
+                    end = removeBtn.start,
                     startMargin = 24.dp,
-                    endMargin = 16.dp,
+                    endMargin = 10.dp,
                     bias = 0f
                 )
-                top.linkTo(parent.top, margin = 10.dp)
+                top.linkTo(parent.top, margin = 2.dp)
                 bottom.linkTo(parent.bottom, margin = 10.dp)
                 width = Dimension.preferredWrapContent
             }
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = reminder.reminderDate.toDateString(),
+            text = reminder.reminder_time.toDateString(),
             maxLines = 1,
             style = MaterialTheme.typography.subtitle2,
             fontSize = 14.sp,
             modifier = Modifier.constrainAs(reminderDate) {
                 linkTo(
-                    start = reminderMsg.end,
-                    end = parent.end,
-                    startMargin = 24.dp,
-                    endMargin = 16.dp,
+                    start = parent.start,
+                    end = removeBtn.start,
+                    startMargin = 8.dp,
+                    endMargin = 15.dp,
                     bias = 0f
                 )
-                top.linkTo(parent.top, margin = 10.dp)
-                bottom.linkTo(parent.bottom, margin = 10.dp)
-                width = Dimension.preferredWrapContent
+                centerHorizontallyTo(parent)
+                top.linkTo(reminderMsg.bottom, margin = 10.dp)
+                bottom.linkTo(parent.bottom, margin = 20.dp)
             }
         )
+        IconButton(
+            modifier = Modifier
+                .size(50.dp)
+                .padding(6.dp)
+                .constrainAs(removeBtn) {
+                    top.linkTo(parent.top, 10.dp)
+                    bottom.linkTo(parent.bottom, 10.dp)
+                    end.linkTo(parent.end)
+                },
+            onClick = { isOpen.value = true },
+            ) {
+            Icon(
+                modifier = Modifier.size(34.dp),
+                imageVector = Icons.Default.Delete,
+                contentDescription = "",
+                tint = MaterialTheme.colors.secondary
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        if(isOpen.value)
+        {
+            AlertDialog(
+                onDismissRequest = {
+                    isOpen.value = false
+                },
+                title = {
+                    Text(
+                        text = "Do you want to remove this reminder?",
+                        fontSize = 24.sp
+                    )
+                },
+                text = {
+                    Text("")
+                },
+                confirmButton = {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            viewModel.removeReminder(reminder)
+                            isOpen.value = false
+                                  },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.secondary,
+                        )
+                    )
+                    {
+                        Text(
+                            text = "Confirm",
+                            fontSize = 24.sp,
+                            color = Color.White
+                        )
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { isOpen.value = false},
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.secondary,
+                        )
+                    )
+                    {
+                        Text(
+                            text = "Cancel",
+                            fontSize = 24.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+            )
+        }
     }
-}
-
-private fun Long.toDateString(): String {
-    return SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault()).format(Date(this))
 }

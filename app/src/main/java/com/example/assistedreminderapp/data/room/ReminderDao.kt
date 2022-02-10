@@ -9,13 +9,13 @@ abstract class ReminderDao{
 
     @Query("""
         SELECT reminders.* FROM reminders
-        INNER JOIN user_table ON reminders.reminder_user_id = user_table.id
-        WHERE reminder_user_id = :userId
+        INNER JOIN user_table ON reminders.creator_id= user_table.id
+        WHERE creator_id = :userId
     """)
     abstract fun remindersFromUser(userId: Long): Flow<List<RemindersFromUser>>
 
     @Query("SELECT * FROM reminders WHERE id = :reminderId")
-    abstract fun reminder(reminderId: Long): Reminder?
+    abstract suspend fun reminder(reminderId: Long): Reminder?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insert(entity: Reminder): Long
