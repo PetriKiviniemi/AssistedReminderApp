@@ -10,6 +10,8 @@ import com.example.assistedreminderapp.data.room.AssistedReminderAppDatabase
 object Graph {
     lateinit var database: AssistedReminderAppDatabase
 
+    lateinit var appContext: Context
+
     val userRepository by lazy {
         UserRepository(
             userDao = database.UserDao()
@@ -26,6 +28,7 @@ object Graph {
 
     fun provideContext(context: Context)
     {
+        appContext = context
         database = Room.databaseBuilder(context, AssistedReminderAppDatabase::class.java, "AssistedReminderApp.db")
             .fallbackToDestructiveMigration()
             .build()

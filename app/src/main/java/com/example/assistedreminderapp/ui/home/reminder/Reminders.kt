@@ -84,15 +84,17 @@ fun ReminderList(
         verticalArrangement = Arrangement.Center
     )
     {
-        items(list) { item ->
-            ReminderListItem(
-                reminder = item.reminder,
-                onClick = {
-                    showReminderScreen(item.reminder.creator_id, item.reminder.reminderId)
-                          },
-                modifier = Modifier.fillParentMaxWidth(),
-                viewModel = viewModel
-            )
+        items(list) { item -> if(item.reminder.reminder_seen)
+            {
+                ReminderListItem(
+                    reminder = item.reminder,
+                    onClick = {
+                        showReminderScreen(item.reminder.creator_id, item.reminder.reminderId)
+                    },
+                    modifier = Modifier.fillParentMaxWidth(),
+                    viewModel = viewModel
+                )
+            }
         }
     }
 }

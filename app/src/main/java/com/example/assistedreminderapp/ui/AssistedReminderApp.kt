@@ -15,7 +15,6 @@ import com.example.assistedreminderapp.ui.home.Home
 import com.example.assistedreminderapp.ui.login.Login
 import com.example.assistedreminderapp.ui.profile.Profile
 import com.example.assistedreminderapp.ui.reminder.Reminder
-import kotlinx.coroutines.launch
 
 @Composable
 fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedReminderAppState())

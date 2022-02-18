@@ -7,7 +7,7 @@ import com.example.assistedreminderapp.data.entity.User
 
 @Database(
     entities =[User::class, Reminder::class],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AssistedReminderAppDatabase: RoomDatabase() {

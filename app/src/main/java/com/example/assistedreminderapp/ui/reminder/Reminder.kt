@@ -44,18 +44,20 @@ fun Reminder(
     val message = rememberSaveable { mutableStateOf(" ")}
     val loc_x = rememberSaveable { mutableStateOf(0.toDouble())}
     val loc_y = rememberSaveable { mutableStateOf(0.toDouble())}
-    val reminder_seen = rememberSaveable { mutableStateOf(false)}
     val date = rememberSaveable { mutableStateOf(Calendar.getInstance().getTime().toDateString())}
     val dateAsLong = rememberSaveable { mutableStateOf(0L)}
+
+    //Notification checkbox state
+    val notifyMe = rememberSaveable { mutableStateOf(false) }
 
     if(viewState.reminder != null)
     {
         message.value = viewState.reminder!!.reminder_message
         loc_x.value = viewState.reminder!!.reminder_loc_x
         loc_y.value = viewState.reminder!!.reminder_loc_y
-        reminder_seen.value = viewState.reminder!!.reminder_seen
         date.value = viewState.reminder!!.reminder_time.toDateString()
         dateAsLong.value = viewState.reminder!!.reminder_time
+        //No need to read reminder_seen, since it's always set to false a reminder is saved
     }
 
     val mYear = rememberSaveable{ mutableStateOf(2022)}
@@ -155,52 +157,69 @@ fun Reminder(
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            //Update or insert reminder
-                            if(viewState.reminder != null)
-                            {
-                                viewModel.addReminder(
-                                    Reminder(
-                                        reminder_message = message.value,
-                                        reminder_loc_x = loc_x.value,
-                                        reminder_loc_y = loc_y.value,
-                                        reminder_time = dateAsLong.value,
-                                        creation_time = System.currentTimeMillis(),
-                                        creator_id = viewState.reminder!!.creator_id,
-                                        reminder_seen = viewState.reminder!!.reminder_seen,
-                                        reminderId = viewState.reminder!!.reminderId
-                                    )
-                                )
-                            }
-                            else
-                            {
-                                viewModel.addReminder(
-                                    Reminder(
-                                        reminder_message = message.value,
-                                        reminder_loc_x = loc_x.value,
-                                        reminder_loc_y = loc_y.value,
-                                        reminder_time = dateAsLong.value,
-                                        creation_time = System.currentTimeMillis(),
-                                        creator_id = userId,
-                                        reminder_seen = false,
-                                    )
-                                )
-                            }
-                            showHomeScreen(userId)
-                        }
-                    },
-                    enabled = true,
-                    shape = RoundedCornerShape(15.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.secondary,
-                    )
-
+                Row(
+                    modifier = Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                //Update or insert reminder
+                                val rem_seen = dateAsLong.value <= System.currentTimeMillis()
+                                if(viewState.reminder != null)
+                                {
+                                    viewModel.addReminder(
+                                        Reminder(
+                                            reminder_message = message.value,
+                                            reminder_loc_x = loc_x.value,
+                                            reminder_loc_y = loc_y.value,
+                                            reminder_time = dateAsLong.value,
+                                            creation_time = System.currentTimeMillis(),
+                                            creator_id = viewState.reminder!!.creator_id,
+                                            reminder_seen = rem_seen,
+                                            reminderId = viewState.reminder!!.reminderId,
+                                            notify_me = notifyMe.value,
+                                        )
+                                    )
+                                }
+                                else
+                                {
+                                    viewModel.addReminder(
+                                        Reminder(
+                                            reminder_message = message.value,
+                                            reminder_loc_x = loc_x.value,
+                                            reminder_loc_y = loc_y.value,
+                                            reminder_time = dateAsLong.value,
+                                            creation_time = System.currentTimeMillis(),
+                                            creator_id = userId,
+                                            reminder_seen = rem_seen,
+                                            notify_me = notifyMe.value
+                                        )
+                                    )
+                                }
+                                showHomeScreen(userId)
+                            }
+                        },
+                        enabled = true,
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.secondary,
+                        )
+
+                    ) {
+                        Text(
+                            text = "Save",
+                            fontSize = 24.sp,
+                        )
+                    }
+                    Checkbox(
+                        modifier = Modifier.padding(10.dp),
+                        checked = notifyMe.value,
+                        onCheckedChange = { notifyMe.value = it}
+                    )
                     Text(
-                        text = "Save",
-                        fontSize = 24.sp,
+                        text = "Notify me?",
+                        fontSize = 16.sp
                     )
                 }
             }
