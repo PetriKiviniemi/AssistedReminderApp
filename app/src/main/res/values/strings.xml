@@ -2,4 +2,6 @@
     <string name="app_name">AssistedReminderApp</string>
     <string name="search">Search</string>
     <string name="account">Account</string>
+    <string name="MAPS_API_KEY">AIzaSyAqe-dQ8A1znKM8YIcmrstqYO1P_8js5MY</string>
+    <string name="btnShowNearbyReminders">Show nearby reminders</string>
 </resources>

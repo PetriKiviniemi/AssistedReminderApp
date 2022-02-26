@@ -1,20 +1,15 @@
 package com.example.assistedreminderapp
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import com.example.assistedreminderapp.data.entity.User
 import com.example.assistedreminderapp.ui.Screen
 import com.example.assistedreminderapp.ui.home.Home
 import com.example.assistedreminderapp.ui.login.Login
+import com.example.assistedreminderapp.ui.maps.ReminderLocationMap
 import com.example.assistedreminderapp.ui.profile.Profile
 import com.example.assistedreminderapp.ui.reminder.Reminder
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedReminderAppState())
@@ -69,6 +64,7 @@ fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedRem
             Reminder(
                 userId = userId,
                 reminderId = remIdLong,
+                navController = appState.navController,
                 showHomeScreen = {
                     appState.navController.navigate(Screen.Home.createRoute(userId)) {
                         popUpTo(Screen.Reminder.createRoute(userId, remIdLong)) {
@@ -76,6 +72,24 @@ fun AssistedReminderApp(appState: AssistedReminderAppState = rememberAssistedRem
                         }
                     }
                 },
+                showMapLocationScreen = {
+                    appState.navController.navigate(Screen.ReminderLocationMap.createRoute(userId)){
+                        popUpTo(Screen.ReminderLocationMap.createRoute(userId)) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        composable(route = Screen.ReminderLocationMap.defaultRoute()) { navBackStackEntry ->
+            val userId = navBackStackEntry.arguments?.getString("userId")?.toLong()
+            ReminderLocationMap(
+                userId = userId,
+                navigateBack = { latlng ->
+                    appState.navController.previousBackStackEntry?.savedStateHandle?.set("location_data", latlng)
+                    appState.navController.popBackStack(Screen.Reminder.route, false)
+                }
             )
         }
     }

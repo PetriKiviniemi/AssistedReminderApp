@@ -11,5 +11,9 @@ sealed class Screen(val route: String) {
     object Reminder: Screen("reminder/userId={userId}?reminderId={reminderId}"){
         fun createRoute(userId: Long, reminderId: Long?) = "reminder/userId=$userId?reminderId=$reminderId"
     }
+    object ReminderLocationMap: Screen( "reminder/reminderLocationMap?userId={userId}")
+    {
+        fun createRoute(userId: Long) = "reminder/reminderLocationMap?userId=$userId"
+    }
     fun defaultRoute() = route
 }

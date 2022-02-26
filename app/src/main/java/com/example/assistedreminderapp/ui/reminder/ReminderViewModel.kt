@@ -1,15 +1,22 @@
 package com.example.assistedreminderapp.ui.reminder
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.compose.material.MaterialTheme
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.from
@@ -29,6 +36,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import com.example.assistedreminderapp.R
+import com.example.assistedreminderapp.ui.MainActivity
+import com.example.assistedreminderapp.util.GeofenceReceiver
+import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofencingRequest
+import com.example.assistedreminderapp.util.*
+import java.util.*
 
 class ReminderViewModel(
     userId: Long,
@@ -45,12 +58,21 @@ class ReminderViewModel(
     {
         viewModelScope.launch {
             reminderRepository.addReminder(reminder)
-            setReminderNotification(reminder)
+            //Check if the reminder was new reminder, or whether it was modification of an existing one
+            //This is necessary for geofence broadcast receiver's parameters, since we want to create
+            //The notification there, but we need the reminder's real id
+            if(reminder.reminderId == 0L)
+            {
+                val rem = reminderRepository.getLatestReminder()
+                if(rem != null)
+                    setReminderNotification(rem)
+            }
+            else
+                setReminderNotification(reminder)
         }
     }
 
     init {
-        createNotificationChannel(context = Graph.appContext)
         viewModelScope.launch {
             if(reminderId != null)
             {
@@ -61,106 +83,116 @@ class ReminderViewModel(
     }
 }
 
-private fun setReminderNotification(reminder: Reminder)
+@SuppressLint("MissingPermission")
+private fun setReminderNotification(
+    reminder: Reminder,
+    reminderRepository: ReminderRepository = Graph.reminderRepository
+)
 {
     //Only do this for reminders that have not been seen
     if(reminder.reminder_seen)
         return
 
-    val workManager = WorkManager.getInstance(Graph.appContext)
-    val constraints = Constraints.Builder()
-        .setRequiredNetworkType(NetworkType.CONNECTED)
-        .build()
+    //Check if both loc and time are null,
+    //then there are no triggers for notification and it can be null
+    var isLocSet: Boolean = false
+    var isTimeSet: Boolean = false
 
-    val curTime = System.currentTimeMillis()
-    val timeDelta = reminder.reminder_time - curTime
-    if(timeDelta < 0)
-        return
+    //Since reminder time and location are both optional, check both
+    if(reminder.reminder_loc_x != 0.0)
+    {
+        val geofence = Geofence.Builder()
+            .setRequestId(reminder.reminderId.toString())
+            .setCircularRegion(
+                reminder.reminder_loc_x,
+                reminder.reminder_loc_y,
+                20.0f
+            )
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_DWELL)
+            .setLoiteringDelay(2)
+            .build()
 
-    val notificationWorker = OneTimeWorkRequestBuilder<NotificationWorker>()
-        .setInitialDelay(timeDelta, TimeUnit.MILLISECONDS)
-        .setConstraints(constraints)
-        .build()
+        val geofencingRequest = GeofencingRequest.Builder().apply {
+            setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            addGeofence(geofence)
+        }.build()
 
-    workManager.enqueue(notificationWorker)
-
-    //Monitor state of work (by notificationWorker)
-    workManager.getWorkInfoByIdLiveData(notificationWorker.id)
-        .observeForever { workInfo ->
-            if(workInfo.state == WorkInfo.State.SUCCEEDED) {
-                createReminderNotification(reminder)
-                //We can now show the reminder in the list and mark it as "seen"
-                //There is contradiction in the logic. Is notification seen when user taps it?
-                //Or when the notification has been triggered?
-                //Problem: What if user never taps the notification, we never show the reminder in the list?
-                //This is why we mark it seen here.
-                runBlocking {
-                    launch {
-                        val rem = Reminder(
-                            reminderId = reminder.reminderId,
-                            reminder_message = reminder.reminder_message,
-                            reminder_time = reminder.reminder_time,
-                            reminder_loc_x = reminder.reminder_loc_x,
-                            reminder_loc_y = reminder.reminder_loc_y,
-                            reminder_seen = true,
-                            creation_time = reminder.creation_time,
-                            creator_id = reminder.creator_id,
-                            notify_me = reminder.notify_me
-                        )
-                        reminderRepository.addReminder(rem)
-                    }
-                }
+        Graph.geofencingClient.addGeofences(geofencingRequest, Graph.geofencePendingIntent).run {
+            addOnFailureListener{
+                Log.d("GEOFENCE_EXCEPTION", it.toString())
+            }
+            addOnSuccessListener {
+                //Geofence added succesfully!
+                Log.d(
+                    "GEOFENCE_SUCCESSFUL",
+                    "Geofence added succesfully. Id: " + geofence.requestId + "\n" +
+                            " latlng: " + reminder.reminder_loc_x + " : " + reminder.reminder_loc_y
+                )
             }
         }
+        isLocSet = true
+    }
 
-}
+    //Check if time is null
+    val cal = Calendar.getInstance()
+    cal.set(2022, 1, 1, 12, 0)
+    val calLong = cal.timeInMillis
 
-private fun createReminderNotification(
-    reminder: Reminder,
-)
-{
-    //Note:: This is a safe cast since there cannot possibly be enough reminders stored for int to overflow
-    val notificationId = reminder.reminderId.toInt()
-    //Custom layouts
-
-
-    // Apply the layouts to the notification
-    val builder = NotificationCompat.Builder(Graph.appContext, "CHANNEL_ID")
-        .setSmallIcon(R.drawable.notification_exclamation_mark)
-        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-        .setContentTitle("Hey! You have a new reminder:")
-        .setContentText(reminder.reminder_message)
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-    with(from(Graph.appContext))
+    //If user has not set the time value, don't set timed notification
+    if(reminder.reminder_time != calLong)
     {
-        //notificationId is unique for each notification
-        if(reminder.notify_me)
-            notify(notificationId, builder.build())
-    }
-}
+        val workManager = WorkManager.getInstance(Graph.appContext)
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
 
-private fun createNotificationChannel(context: Context)
-{
-    //Create notification channel for API version 26 and above
-    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-        val name = "NotificationChannelName"
-        val descriptionText = "NotificationChannelDescriptionText"
-        val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel("CHANNEL_ID", name, importance).apply {
-            description = descriptionText
+        val curTime = System.currentTimeMillis()
+        val timeDelta = reminder.reminder_time - curTime
+        if(timeDelta < 0)
+            return
+
+        val notificationWorker = OneTimeWorkRequestBuilder<NotificationWorker>()
+            .setInitialDelay(timeDelta, TimeUnit.MILLISECONDS)
+            .setConstraints(constraints)
+            .build()
+
+
+        workManager.enqueue(notificationWorker)
+
+        //Monitor state of work (by notificationWorker)
+        workManager.getWorkInfoByIdLiveData(notificationWorker.id)
+            .observeForever { workInfo ->
+                if(workInfo.state == WorkInfo.State.SUCCEEDED) {
+                    createReminderNotification(reminder)
+                }
+            }
+        isTimeSet = true
+    }
+
+    if(!isLocSet && !isTimeSet)
+    {
+        runBlocking {
+            launch {
+                //Mark the reminder as seen
+                val newRem = Reminder(
+                    reminderId = reminder.reminderId,
+                    reminder_message = reminder.reminder_message,
+                    reminder_time = reminder.reminder_time,
+                    reminder_loc_x = reminder.reminder_loc_x,
+                    reminder_loc_y = reminder.reminder_loc_y,
+                    reminder_seen = true,
+                    creation_time = reminder.creation_time,
+                    creator_id = reminder.creator_id,
+                    notify_me = reminder.notify_me
+                )
+                Graph.reminderRepository.addReminder(newRem)
+            }
         }
-
-        channel.setSound(
-            Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://" + Graph.appContext.packageName + "/" + R.raw.guitar_notification_sound),
-            Notification.AUDIO_ATTRIBUTES_DEFAULT
-        )
-
-        //register the channel
-        val notificationManager: NotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
     }
+
 }
+
 
 data class ReminderViewState(
     val reminder: Reminder? = null,

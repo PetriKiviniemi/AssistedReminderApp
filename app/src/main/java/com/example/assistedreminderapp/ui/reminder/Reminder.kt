@@ -18,11 +18,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import com.example.assistedreminderapp.R
 import com.example.assistedreminderapp.data.entity.Reminder
 import com.example.assistedreminderapp.ui.home.reminder.RemindersViewModel
 import com.example.assistedreminderapp.util.*
 import com.google.accompanist.insets.systemBarsPadding
+import com.google.android.gms.maps.model.LatLng
 import java.util.*
 import kotlinx.coroutines.launch
 
@@ -31,6 +34,8 @@ fun Reminder(
     userId: Long,
     reminderId: Long? = null,
     showHomeScreen: (userId: Long) -> Unit,
+    showMapLocationScreen: (userId: Long) -> Unit,
+    navController: NavController
 )
 {
     val viewModel: ReminderViewModel = viewModel(
@@ -46,6 +51,19 @@ fun Reminder(
     val loc_y = rememberSaveable { mutableStateOf(0.toDouble())}
     val date = rememberSaveable { mutableStateOf(Calendar.getInstance().getTime().toDateString())}
     val dateAsLong = rememberSaveable { mutableStateOf(0L)}
+
+    //Location state
+    val latlng = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<LatLng>("location_data")
+        ?.value
+
+    if(latlng != null)
+    {
+        loc_x.value = latlng.latitude
+        loc_y.value = latlng.longitude
+    }
+
 
     //Notification checkbox state
     val notifyMe = rememberSaveable { mutableStateOf(false) }
@@ -131,15 +149,25 @@ fun Reminder(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
-                    onClick = {/* TODO:: IMPLEMENT */},
+                    onClick = {showMapLocationScreen(userId)},
                     shape = RoundedCornerShape(5.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 {
-                    Text(
-                        text = "Select location",
-                        fontSize = 18.sp
-                    )
+                    if(loc_x.value != 0.0)
+                    {
+                        Text(
+                            text = "lat: ${loc_x.value}\r\nlong: ${loc_y.value}",
+                            fontSize = 16.sp
+                        )
+
+                    }else
+                    {
+                        Text(
+                            text = "Select location",
+                            fontSize = 18.sp
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
